@@ -325,10 +325,61 @@ class Assets {
 			// Determine path
 			if     ($type === 'css') $file_path = reduce_double_slashes(self::$css_path.'/'.$asset);
 			elseif ($type === 'js')  $file_path = reduce_double_slashes(self::$js_path.'/'.$asset);
+			$asset_pathinfo = pathinfo($asset);
 			$tmp_asset['path'] = $file_path;
 
-			// Modified time
-			$tmp_asset['modified'] = filemtime(realpath($file_path));
+			// If this is an SASS/SCSS file, check for any included partials and monitor the edited timestamp on these assets as well
+			if ( in_array( $asset_pathinfo['extension'], array('scss','sass') ) ){
+				
+				// Modified time for this file, if any partials were edited more recently this value is replaced
+				$tmp_asset['modified'] = filemtime(realpath($file_path));
+
+				// Load PHPSass if it hasn't been loaded already
+				if (defined('SPARKPATH')) include_once(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/phpsass/SassParser.php'));
+				else                      include_once(reduce_double_slashes(APPPATH.'/third_party/assets/phpsass/SassParser.php'));
+
+				// Initialize SASS Parser, going to use some methods from that library to gather the partials
+				$SassParser = new SassParser(
+					array(
+						'basepath' => self::$base_url,
+						'debug_info' => FALSE,
+						'line_numbers' => TRUE,
+						'load_paths' => array('./', 'css', 'assets/css'),
+						'style' => 'expanded',
+						'syntax' => 'scss',
+						'debug' => TRUE,
+						'quiet' => FALSE,
+						'callbacks' => array(
+							'warn' => TRUE,
+							'debug' => TRUE
+						)
+					)
+				);
+
+				// Gather this files contents
+				$contents = file_get_contents($file_path) . "\n\n "; #add some whitespace to fix bug
+				$contents = preg_replace("/(^|\s)\/\/[^\n]+/", '', $contents);
+				// Checking for partials, use the toTree method to gather
+				$partialCheck = $SassParser->toTree( $contents );
+				// Check for children values in the $partialCheck object above
+				if ( is_object($partialCheck) && array_key_exists('children', $partialCheck) ) {
+					$partialCheckArray = (array)$partialCheck;
+					foreach ( $partialCheckArray['children'] as $key => $contentLine ) {
+						if( substr($contentLine->token->source, 0, 7) == '@import' ){
+							// Determine the file path and get the files modified time
+							$partialName = trim( str_replace(array('\'', '"'), array('',''), substr($contentLine->token->source, 7) ) );
+							$getFileResult = SassFile::get_file( $partialName, $SassParser);
+							$filename = array_shift($getFileResult);
+							$fileModified = filemtime ( $filename );
+							if ( $fileModified > $tmp_asset['modified'] ) { $tmp_asset['modified'] = $fileModified; }
+						}
+					}
+				}
+			} else {
+				// Modified time
+				$tmp_asset['modified'] = filemtime(realpath($file_path));
+			}
+
 			if ($tmp_asset['modified'] > self::$_assets[$type][$group]['last_modified'])
 			{
 				self::$_assets[$type][$group]['last_modified']       = $tmp_asset['modified'];
@@ -1138,8 +1189,8 @@ class Assets {
 			if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::init_less()_start");
 
 			// Load LessPHP
-			if (defined('SPARKPATH')) include(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/lessc/lessc.php'));
-			else                      include(reduce_double_slashes(APPPATH.'/third_party/assets/lessc/lessc.php'));
+			if (defined('SPARKPATH')) include_once(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/lessc/lessc.php'));
+			else                      include_once(reduce_double_slashes(APPPATH.'/third_party/assets/lessc/lessc.php'));
 			
 			// Initialize
 			self::$_less = new lessc();
@@ -1162,8 +1213,8 @@ class Assets {
 			if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::init_sass()_start");
 
 			// Load PHPSass
-			if (defined('SPARKPATH')) include(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/phpsass/SassParser.php'));
-			else                      include(reduce_double_slashes(APPPATH.'/third_party/assets/phpsass/SassParser.php'));
+			if (defined('SPARKPATH')) include_once(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/phpsass/SassParser.php'));
+			else                      include_once(reduce_double_slashes(APPPATH.'/third_party/assets/phpsass/SassParser.php'));
 			
 			$options = array(
 				'style' => 'expanded',
