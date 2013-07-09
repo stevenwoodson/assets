@@ -962,28 +962,21 @@ class Assets {
 		{
 			foreach ($files as $file)
 			{
-				if ($group)
-				{
+				$file_path = reduce_double_slashes(self::$cache_path.'/'.$file);
+				$file_info = pathinfo($file_path);
 
+				if ($type === 'css')
+				{
+					if (isset($file_info['extension']) and strtolower($file_info['extension']) === 'css') unlink($file_path);
+				}
+				elseif ($type === 'js')
+				{
+					if (isset($file_info['extension']) and strtolower($file_info['extension']) === 'js') unlink($file_path);
 				}
 				else
 				{
-					$file_path = reduce_double_slashes(self::$cache_path.'/'.$file);
-					$file_info = pathinfo($file_path);
-
-					if ($type === 'css')
-					{
-						if (isset($file_info['extension']) and strtolower($file_info['extension']) === 'css') unlink($file_path);
-					}
-					elseif ($type === 'js')
-					{
-						if (isset($file_info['extension']) and strtolower($file_info['extension']) === 'js') unlink($file_path);
-					}
-					else
-					{
-						if (isset($file_info['extension']) and (strtolower($file_info['extension']) === 'css' or strtolower($file_info['extension']) === 'js')) unlink($file_path);
-						if (isset($file_info['extension']) and strtolower($file_info['extension']) === 'cache') unlink($file_path);
-					}
+					if (isset($file_info['extension']) and (strtolower($file_info['extension']) === 'css' or strtolower($file_info['extension']) === 'js')) unlink($file_path);
+					if (isset($file_info['extension']) and strtolower($file_info['extension']) === 'cache') unlink($file_path);
 				}
 			}
 		}
