@@ -442,10 +442,12 @@ class Assets {
 				// Process imports in CSS files
 				if ($type === 'css')
 				{
+					$fileArray = explode( '.', $asset['file'] );
+					$asset['file_ext'] = array_pop($fileArray);
+					$asset['file_name'] = implode('.', $fileArray);
+
 					$import_result = self::_process_imports($contents, null, $asset['file']);
 					$contents      = $import_result['contents'];
-
-					list ( $asset['file_name'], $asset['file_ext']) = explode( '.', $asset['file'] );
 
 					// LESS
 					if (self::$enable_less and ! self::$freeze and $asset['file_ext'] == 'less')
@@ -454,10 +456,13 @@ class Assets {
 						$contents = self::$_less->parse($contents);
 					}
 					// SASS
-					if (self::$enable_sass and ! self::$freeze and ( $asset['file_ext'] == 'sass' or $asset['file_ext'] == 'scss' ))
+					else if (self::$enable_sass and ! self::$freeze and ( $asset['file_ext'] == 'sass' or $asset['file_ext'] == 'scss' ))
 					{
 						self::_init_sass();
-						$contents = self::$_sass->toCss($contents);
+						$contents = self::$_sass->toCss($asset['file']);
+					}
+					else 
+					{
 					}
 
 					// Update last modified time
@@ -958,6 +963,7 @@ class Assets {
 		// Get all cached files
 		$files = directory_map(self::$cache_path, 1);
 
+
 		if ($files)
 		{
 			foreach ($files as $file)
@@ -1210,14 +1216,18 @@ class Assets {
 			else                      include_once(reduce_double_slashes(APPPATH.'/third_party/assets/phpsass/SassParser.php'));
 			
 			$options = array(
+				'basepath' => self::$base_url,
+				'debug_info' => FALSE,
+				'line_numbers' => TRUE,
+				'load_paths' => array('./', 'css', 'assets/css'),
 				'style' => 'expanded',
-				'cache' => FALSE,
-				'syntax' => self::$base_url,
-				'debug' => FALSE,
+				'syntax' => 'scss',
+				'debug' => TRUE,
+				'quiet' => FALSE,
 				'callbacks' => array(
-					'warn' => 'warn',
-					'debug' => 'debug'
-				),
+					'warn' => TRUE,
+					'debug' => TRUE
+				)
 			);
 
 			// Initialize

@@ -9,8 +9,8 @@
 |
 */
 
-$config['assets']['minify_css']           = true;
-$config['assets']['minify_js']            = true;
+$config['assets']['minify_css']           = false;
+$config['assets']['minify_js']            = false;
 $config['assets']['pack_js']              = true;
 $config['assets']['enable_less']          = true;
 $config['assets']['enable_sass']          = true;
@@ -27,8 +27,8 @@ $config['assets']['freeze']               = false;
 */
 
 $config['assets']['auto_clear_cache']     = true;
-$config['assets']['auto_clear_css_cache'] = false;
-$config['assets']['auto_clear_js_cache']  = false;
+$config['assets']['auto_clear_css_cache'] = true;
+$config['assets']['auto_clear_js_cache']  = true;
 
 /*
 |--------------------------------------------------------------------------
